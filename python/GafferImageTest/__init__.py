@@ -62,6 +62,7 @@ from ImageTimeWarpTest import ImageTimeWarpTest
 from ImageSamplerTest import ImageSamplerTest
 from ImageNodeTest import ImageNodeTest
 from FormatDataTest import FormatDataTest
+from ScaleTest import ScaleTest
 
 if __name__ == "__main__":
 	import unittest
