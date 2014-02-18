@@ -26,8 +26,8 @@
 #  PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
 #  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
 #  EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-#  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-#  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+#  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES LOSS OF USE, DATA, OR
+#  PROFITS OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 #  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 #  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -53,10 +53,13 @@ class ScaleTest( unittest.TestCase ) :
 		
 		# Resize the image and check the size of the output data window.
 		scale = GafferImage.Scale()
-		scale["scale"].setValue( IECore.V2f( 1.25, .5 ) );	
+		scale["scale"].setValue( IECore.V2f( 1.25, .5 ) )	
+		scale["origin"].setValue( IECore.V2f( 50, 50 ) )	
 		scale["in"].setInput( read["out"] )
-		scaleWindow = scale["out"]["dataWindow"].getValue()
-		self.assertEqual( scaleWindow, IECore.Box2i( IECore.V2i( -13, 25 ), IECore.V2i( 111, 74 )  ) )
+		self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( -13, 25 ), IECore.V2i( 111, 74 )  ) )
+		
+		scale["origin"].setValue( IECore.V2f( 0, 0 ) )	
+		self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( 0, 0 ), IECore.V2i( 124, 49 )  ) )
 
 	def testEnabled( self ) :
 		
@@ -77,7 +80,7 @@ class ScaleTest( unittest.TestCase ) :
 			self.assertEqual( scale["in"]["channelData"].hash(), scale["out"]["channelData"].hash() )
 		
 			scale["enabled"].setValue( True )
-			scale["scale"].setValue( IECore.V2f( .25, .75 ) );	
+			scale["scale"].setValue( IECore.V2f( .25, .75 ) )	
 			
 			self.assertEqual( scale["in"]["format"].hash(), scale["out"]["format"].hash() )
 			self.assertEqual( scale["in"]["channelNames"].hash(), scale["out"]["channelNames"].hash() )
@@ -96,13 +99,13 @@ class ScaleTest( unittest.TestCase ) :
 		context["image:tileOrigin"] = IECore.V2i( GafferImage.ImagePlug.tileSize() )
 
 		with context :
-			scale["scale"].setValue( IECore.V2f( 1., 1. ) );	
+			scale["scale"].setValue( IECore.V2f( 1., 1. ) )	
 			self.assertEqual( scale["in"]["format"].hash(), scale["out"]["format"].hash() )
 			self.assertEqual( scale["in"]["channelNames"].hash(), scale["out"]["channelNames"].hash() )
 			self.assertEqual( scale["in"]["dataWindow"].hash(), scale["out"]["dataWindow"].hash() )
 			self.assertEqual( scale["in"]["channelData"].hash(), scale["out"]["channelData"].hash() )
 		
-			scale["scale"].setValue( IECore.V2f( .25, .75 ) );	
+			scale["scale"].setValue( IECore.V2f( .25, .75 ) )	
 			formatHash = scale["out"]["format"].hash()
 			dataWindowHash = scale["out"]["dataWindow"].hash()
 			channelNamesHash = scale["out"]["channelNames"].hash()
@@ -112,9 +115,19 @@ class ScaleTest( unittest.TestCase ) :
 			self.assertNotEqual( scale["in"]["channelData"].hash(), channelDataHash )
 			self.assertEqual( scale["in"]["channelNames"].hash(), channelNamesHash )
 			
-			scale["filter"].setValue( "Hermite" );	
+			scale["filter"].setValue( "Hermite" )	
 			self.assertNotEqual( channelDataHash, scale["out"]["channelData"].hash() )
 			self.assertEqual( dataWindowHash, scale["out"]["dataWindow"].hash() )
+			self.assertEqual( formatHash, scale["out"]["format"].hash() )
+			self.assertEqual( channelNamesHash, scale["out"]["channelNames"].hash() )
+			formatHash = scale["out"]["format"].hash()
+			dataWindowHash = scale["out"]["dataWindow"].hash()
+			channelNamesHash = scale["out"]["channelNames"].hash()
+			channelDataHash = scale["out"]["channelData"].hash()
+			
+			scale["origin"].setValue( IECore.V2f( 30., 21. ) )	
+			self.assertNotEqual( channelDataHash, scale["out"]["channelData"].hash() )
+			self.assertNotEqual( dataWindowHash, scale["out"]["dataWindow"].hash() )
 			self.assertEqual( formatHash, scale["out"]["format"].hash() )
 			self.assertEqual( channelNamesHash, scale["out"]["channelNames"].hash() )
 
@@ -131,7 +144,7 @@ class ScaleTest( unittest.TestCase ) :
 
 		with context :
 			cs = GafferTest.CapturingSlot( scale.plugDirtiedSignal() )
-			scale["scale"].setValue( IECore.V2f( .2, .2 ) );	
+			scale["scale"].setValue( IECore.V2f( .2, .2 ) )	
 		
 			dirtiedPlugs = set( [ x[0].relativeName( x[0].node() ) for x in cs ] )
 			self.assertEqual( len( dirtiedPlugs ), 6 )
@@ -144,11 +157,24 @@ class ScaleTest( unittest.TestCase ) :
 
 		with context :
 			cs = GafferTest.CapturingSlot( scale.plugDirtiedSignal() )
-			scale["filter"].setValue( "Hermite" );	
+			scale["filter"].setValue( "Hermite" )	
 		
 			dirtiedPlugs = set( [ x[0].relativeName( x[0].node() ) for x in cs ] )
 			self.assertEqual( len( dirtiedPlugs ), 3 )
 			self.assertTrue( "filter" in dirtiedPlugs )
 			self.assertTrue( "out.channelData" in dirtiedPlugs )
+			self.assertTrue( "out" in dirtiedPlugs )
+
+		with context :
+			cs = GafferTest.CapturingSlot( scale.plugDirtiedSignal() )
+			scale["origin"].setValue( IECore.V2f( 10., 25. ) )	
+		
+			dirtiedPlugs = set( [ x[0].relativeName( x[0].node() ) for x in cs ] )
+			self.assertEqual( len( dirtiedPlugs ), 6 )
+			self.assertTrue( "origin" in dirtiedPlugs )
+			self.assertTrue( "origin.x" in dirtiedPlugs )
+			self.assertTrue( "origin.y" in dirtiedPlugs )
+			self.assertTrue( "out.channelData" in dirtiedPlugs )
+			self.assertTrue( "out.dataWindow" in dirtiedPlugs )
 			self.assertTrue( "out" in dirtiedPlugs )
 

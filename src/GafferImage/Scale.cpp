@@ -52,6 +52,7 @@ Scale::Scale( const std::string &name )
 	storeIndexOfNextChild( g_firstPlugIndex );
 	addChild( new FilterPlug( "filter" ) );
 	addChild( new V2fPlug( "scale", Gaffer::Plug::In, Imath::V2f( 1. ) ) );
+	addChild( new V2fPlug( "origin", Gaffer::Plug::In, Imath::V2f( 0. ) ) );
 }
 
 Scale::~Scale()
@@ -78,11 +79,21 @@ const Gaffer::V2fPlug *Scale::scalePlug() const
 	return getChild<V2fPlug>( g_firstPlugIndex+1 );
 }
 
+Gaffer::V2fPlug *Scale::originPlug()
+{
+	return getChild<V2fPlug>( g_firstPlugIndex+2 );
+}
+
+const Gaffer::V2fPlug *Scale::originPlug() const
+{
+	return getChild<V2fPlug>( g_firstPlugIndex+2 );
+}
+
 void Scale::affects( const Gaffer::Plug *input, AffectedPlugsContainer &outputs ) const
 {
 	ImageProcessor::affects( input, outputs );
 
-	if( scalePlug()->isAncestorOf( input ) )
+	if( scalePlug()->isAncestorOf( input ) || originPlug()->isAncestorOf( input ) )
 	{
 		outputs.push_back( outPlug()->dataWindowPlug() );
 		outputs.push_back( outPlug()->channelDataPlug() );
@@ -115,6 +126,7 @@ void Scale::hashDataWindow( const GafferImage::ImagePlug *output, const Gaffer::
 
 	h.append( inPlug()->dataWindowPlug()->hash() );
 	h.append( scalePlug()->hash() );
+	h.append( originPlug()->hash() );
 }
 
 void Scale::hashChannelNames( const GafferImage::ImagePlug *output, const Gaffer::Context *context, IECore::MurmurHash &h ) const
@@ -130,6 +142,7 @@ void Scale::hashChannelData( const GafferImage::ImagePlug *output, const Gaffer:
 	h.append( scalePlug()->hash() );
 	h.append( filterPlug()->hash() ); 
 	h.append( inPlug()->dataWindowPlug()->hash() );
+	h.append( originPlug()->hash() );
 }
 
 GafferImage::Format Scale::computeFormat( const Gaffer::Context *context, const ImagePlug *parent ) const
@@ -147,16 +160,16 @@ Imath::Box2i Scale::computeDataWindow( const Gaffer::Context *context, const Ima
 	Imath::V2d scale( scalePlug()->getValue() );
 	Imath::Box2i dataWindow( inPlug()->dataWindowPlug()->getValue() );
 	Imath::Box2i displayWindow( inPlug()->formatPlug()->getValue().getDisplayWindow() );
-	Imath::V2d scaleOffset( displayWindow.min.x + ( displayWindow.size().x + 1. ) * .5, displayWindow.min.y + ( displayWindow.size().y + 1. ) * .5 );
+	Imath::V2d scaleOrigin( originPlug()->getValue() );
 	
 	Imath::Box2i outDataWindow(
 		Imath::V2i(
-			IECore::fastFloatFloor( ( displayWindow.min.x - scaleOffset.x ) * scale.x + scaleOffset.x ),
-			IECore::fastFloatFloor( ( displayWindow.min.y - scaleOffset.y ) * scale.y + scaleOffset.y )
+			IECore::fastFloatFloor( ( displayWindow.min.x - scaleOrigin.x ) * scale.x + scaleOrigin.x ),
+			IECore::fastFloatFloor( ( displayWindow.min.y - scaleOrigin.y ) * scale.y + scaleOrigin.y )
 		),
 		Imath::V2i(
-			IECore::fastFloatFloor( ( displayWindow.max.x - scaleOffset.x + 1. ) * scale.x + scaleOffset.x - 1. ),
-			IECore::fastFloatFloor( ( displayWindow.max.y - scaleOffset.y + 1. ) * scale.y + scaleOffset.y - 1. )
+			IECore::fastFloatFloor( ( displayWindow.max.x - scaleOrigin.x + 1. ) * scale.x + scaleOrigin.x - 1. ),
+			IECore::fastFloatFloor( ( displayWindow.max.y - scaleOrigin.y + 1. ) * scale.y + scaleOrigin.y - 1. )
 		)
 	);
 
@@ -179,12 +192,12 @@ IECore::ConstFloatVectorDataPtr Scale::computeChannelData( const std::string &ch
 	// Create some useful variables...
 	Imath::Box2i displayWindow( inPlug()->formatPlug()->getValue().getDisplayWindow() );
 	Imath::V2d scaleFactor( scalePlug()->getValue() );
-	Imath::V2d scaleOffset( displayWindow.min.x + ( displayWindow.size().x + 1. ) * .5, displayWindow.min.y + ( displayWindow.size().y + 1. ) * .5 );
-	Imath::V2i scaleOrigin(
-		IECore::fastFloatFloor( ( displayWindow.min.x - scaleOffset.x ) * scaleFactor.x + scaleOffset.x ),
-		IECore::fastFloatFloor( ( displayWindow.min.y - scaleOffset.y ) * scaleFactor.y + scaleOffset.y )
+	Imath::V2d scaleOrigin( originPlug()->getValue() );
+	Imath::V2i outputOrigin(
+		IECore::fastFloatFloor( ( displayWindow.min.x - scaleOrigin.x ) * scaleFactor.x + scaleOrigin.x ),
+		IECore::fastFloatFloor( ( displayWindow.min.y - scaleOrigin.y ) * scaleFactor.y + scaleOrigin.y )
 	);
-	Imath::Box2i tile( tileOrigin-scaleOrigin, Imath::V2i( tileOrigin.x - scaleOrigin.x + ImagePlug::tileSize() - 1, tileOrigin.y - scaleOrigin.y + ImagePlug::tileSize() - 1 ) );
+	Imath::Box2i tile( tileOrigin-outputOrigin, Imath::V2i( tileOrigin.x - outputOrigin.x + ImagePlug::tileSize() - 1, tileOrigin.y - outputOrigin.y + ImagePlug::tileSize() - 1 ) );
 
 	// Create our filter.
 	FilterPtr f = Filter::create( filterPlug()->getValue(), 1.f / scaleFactor.y );

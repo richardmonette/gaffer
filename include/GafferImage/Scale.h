@@ -58,9 +58,10 @@ class Scale : public ImageProcessor
 		/// Plug accessors.	
 		GafferImage::FilterPlug *filterPlug();
 		const GafferImage::FilterPlug *filterPlug() const;
-		
 		Gaffer::V2fPlug *scalePlug();
 		const Gaffer::V2fPlug *scalePlug() const;
+		Gaffer::V2fPlug *originPlug();
+		const Gaffer::V2fPlug *originPlug() const;
 
 		virtual void affects( const Gaffer::Plug *input, AffectedPlugsContainer &outputs ) const;
 		virtual bool enabled() const;
