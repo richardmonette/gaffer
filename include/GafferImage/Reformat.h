@@ -79,7 +79,7 @@ class Reformat : public ImageProcessor
 
 		/// Reformats the input plug with a filter by doing a 2-pass squash/stretch.
 		/// We reformat the image by doing two passes over the input in first the horizontal and then vertical directions.
-		/// On each pass we use the chosen filter to create a (row or column) buffer of pixels their weighted contributeion to each pixel on the row or column.
+		/// On each pass we use the chosen filter to create a (row or column) buffer of pixels their weighted contribution to each pixel on the row or column.
 		/// Using this column/row buffer we iterate over the input and sum the contributing pixels. The result is normalized by the sum of weights.
 		/// This process is repeated once for the vertical and horizontal passes and the final result is written into the output buffer.
 		virtual IECore::ConstFloatVectorDataPtr computeChannelData( const std::string &channelName, const Imath::V2i &tileOrigin, const Gaffer::Context *context, const ImagePlug *parent ) const;
