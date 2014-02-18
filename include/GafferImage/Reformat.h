@@ -34,8 +34,8 @@
 //  
 //////////////////////////////////////////////////////////////////////////
 
-#ifndef GAFFERSCENE_REFORMAT_H
-#define GAFFERSCENE_REFORMAT_H
+#ifndef GAFFERIMAGE_REFORMAT_H
+#define GAFFERIMAGE_REFORMAT_H
 
 #include "GafferImage/ImageProcessor.h"
 #include "GafferImage/FilterPlug.h"
@@ -97,4 +97,4 @@ IE_CORE_DECLAREPTR( Reformat )
 
 } // namespace GafferImage
 
-#endif // GAFFERSCENE_REFORMAT_H
+#endif // GAFFERIMAGE_REFORMAT_H
