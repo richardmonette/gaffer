@@ -53,14 +53,50 @@ class ScaleTest( unittest.TestCase ) :
 		
 		# Resize the image and check the size of the output data window.
 		scale = GafferImage.Scale()
+
 		scale["scale"].setValue( IECore.V2f( 1.25, .5 ) )	
 		scale["in"].setInput( read["out"] )
 		
-		scale["origin"].setValue( IECore.V2f( 50, 30 ) )	
-		self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( 25, 30 ), IECore.V2i( 86, 54 )  ) )
-		
 		scale["origin"].setValue( IECore.V2f( 0, 0 ) )	
-		self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( 0, 0 ), IECore.V2i( 124, 49 )  ) )
+		self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( 37, 15 ), IECore.V2i( 99, 39 )  ) )
+		
+		scale["origin"].setValue( IECore.V2f( 50, 30 ) )	
+		self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( 25, 30 ), IECore.V2i( 87, 54 )  ) )
+	
+		# Test the scale with an image that has a negative data window.	
+		read["fileName"].setValue( os.path.join( self.path, "checkerWithNegativeDataWindow.200x150.exr" ) )
+		scale["origin"].setValue( IECore.V2f( 20, 10 ) )	
+		self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( -37, -10 ), IECore.V2i( 213, 64 )  ) )
+	
+	
+#	TODO:
+#*	It appears that gaffer is displaying checkerWithNegativeDataWindow.200x150.exr incorrectly. Check it out and make sure that it works correctly.
+#*	Add an option to the image reader that will 0 offset image formats.
+
+		read["fileName"].setValue( os.path.join( self.path, "checkerWithNegWindows.200x150.exr" ) )
+		scale["origin"].setValue( IECore.V2f( -5, -5 ) )	
+		
+		dw = scale["in"]["format"].getValue().getDisplayWindow()
+		print "Input DisplayWindow: %d, %d, %d, %d" % ( dw.min.x, dw.min.y, dw.max.x, dw.max.y ) 
+		dw = scale["in"]["dataWindow"].getValue()
+		print "Input DataWindow: %d, %d, %d, %d" % ( dw.min.x, dw.min.y, dw.max.x, dw.max.y ) 
+		dw = scale["out"]["format"].getValue().getDisplayWindow()
+		print "Out DisplayWindow: %d, %d, %d, %d" % ( dw.min.x, dw.min.y, dw.max.x, dw.max.y ) 
+		dw = scale["out"]["dataWindow"].getValue()
+		print "Out DataWindow: %d, %d, %d, %d" % ( dw.min.x, dw.min.y, dw.max.x, dw.max.y ) 
+		
+		w = GafferImage.ImageWriter()
+		w["fileName"].setValue( "/tmp/scale.exr" )
+		w["in"].setInput( scale["out"] )
+		w.execute( [ Gaffer.Context() ] )
+		
+		
+
+		
+		read["fileName"].setValue( os.path.join( self.path, "checkerWithNegativeDataWindow.200x150.exr" ) )
+		scale["origin"].setValue( IECore.V2f( 20, 10 ) )	
+		self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( -37, -10 ), IECore.V2i( 213, 64 )  ) )
+		
 		
 	def testEnabled( self ) :
 		

@@ -1,6 +1,6 @@
 ##########################################################################
 #  
-#  Copyright (c) 2013, Image Engine Design Inc. All rights reserved.
+#  Copyright (c) 2013-2014, Image Engine Design Inc. All rights reserved.
 #  
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -73,12 +73,33 @@ class ReformatTest( unittest.TestCase ) :
 		reformat["format"].setValue( GafferImage.Format( 150, 125, 1. ) )
 		
 		dirtiedPlugs = set( [ x[0].relativeName( x[0].node() ) for x in cs ] )
-		self.assertEqual( len( dirtiedPlugs ), 5 )
-		self.assertTrue( "format" in dirtiedPlugs )
+		self.assertEqual( len( dirtiedPlugs ), 11 )
+		self.assertTrue( "__scale" in dirtiedPlugs )
+		self.assertTrue( "__scale.x" in dirtiedPlugs )
+		self.assertTrue( "__scale.y" in dirtiedPlugs )
+		self.assertTrue( "__origin" in dirtiedPlugs )
+		self.assertTrue( "__origin.x" in dirtiedPlugs )
+		self.assertTrue( "__origin.y" in dirtiedPlugs )
 		self.assertTrue( "out" in dirtiedPlugs )
 		self.assertTrue( "out.dataWindow" in dirtiedPlugs )
 		self.assertTrue( "out.channelData" in dirtiedPlugs )
 		self.assertTrue( "out.format" in dirtiedPlugs )
+		self.assertTrue( "format" in dirtiedPlugs )
+	
+	# Test the the value of the hidden scale plug is set as expected.
+	def testScalePlug( self ) :
+
+		read = GafferImage.ImageReader()
+		read["fileName"].setValue( os.path.join( self.path, "blueWithDataWindow.100x100.exr" ) )
+		displayWindow = read["out"]["format"].getValue().getDisplayWindow()
+
+		scale = IECore.V2f( 2., 1.5 )
+		outFormat = GafferImage.Format( int( ( displayWindow.size().x + 1 ) * scale.x ), int( ( displayWindow.size().y + 1 ) * scale.y ), 1. )
+		
+		reformat = GafferImage.Reformat()
+		reformat["format"].setValue( outFormat )
+		reformat["in"].setInput( read["out"] )
+		self.assertEqual( reformat["__scale"].getValue(), scale )
 
 	# Test a reformat on an image with a data window that is different to the display window.
 	def testDataWindow( self ) :
@@ -86,12 +107,20 @@ class ReformatTest( unittest.TestCase ) :
 		read = GafferImage.ImageReader()
 		read["fileName"].setValue( os.path.join( self.path, "blueWithDataWindow.100x100.exr" ) )
 		readWindow = read["out"]["dataWindow"].getValue()
-		
+		print readWindow
+		print read["out"]["format"].getValue().getDisplayWindow()
+
 		# Resize the image and check the size of the output data window.
 		reformat = GafferImage.Reformat()
 		reformat["format"].setValue( GafferImage.Format( 150, 125, 1. ) )
 		reformat["in"].setInput( read["out"] )
+		
+		print reformat["__scale"].getValue()
+		print reformat["__ReformatScale"]["out"]["dataWindow"].getValue()
+
 		reformatWindow = reformat["out"]["dataWindow"].getValue()
+		print reformatWindow
+		print reformat["format"].getValue().getDisplayWindow()
 		self.assertEqual( reformatWindow, IECore.Box2i( IECore.V2i( 45, 37 ), IECore.V2i( 119, 99 )  ) )
 	
 	def testNegativeDisplayWindowReformat( self ) :

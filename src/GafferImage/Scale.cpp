@@ -167,8 +167,8 @@ Imath::Box2i Scale::computeDataWindow( const Gaffer::Context *context, const Ima
 			IECore::fastFloatFloor( ( dataWindow.min.y - scaleOrigin.y ) * scale.y + scaleOrigin.y )
 		),
 		Imath::V2i(
-			IECore::fastFloatFloor( ( dataWindow.max.x - scaleOrigin.x + 1. ) * scale.x + scaleOrigin.x - 1. ),
-			IECore::fastFloatFloor( ( dataWindow.max.y - scaleOrigin.y + 1. ) * scale.y + scaleOrigin.y - 1. )
+			IECore::fastFloatCeil( ( dataWindow.max.x - scaleOrigin.x + 1. ) * scale.x + scaleOrigin.x - 1. ),
+			IECore::fastFloatCeil( ( dataWindow.max.y - scaleOrigin.y + 1. ) * scale.y + scaleOrigin.y - 1. )
 		)
 	);
 
