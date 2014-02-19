@@ -159,17 +159,16 @@ Imath::Box2i Scale::computeDataWindow( const Gaffer::Context *context, const Ima
 {
 	Imath::V2d scale( scalePlug()->getValue() );
 	Imath::Box2i dataWindow( inPlug()->dataWindowPlug()->getValue() );
-	Imath::Box2i displayWindow( inPlug()->formatPlug()->getValue().getDisplayWindow() );
 	Imath::V2d scaleOrigin( originPlug()->getValue() );
 	
 	Imath::Box2i outDataWindow(
 		Imath::V2i(
-			IECore::fastFloatFloor( ( displayWindow.min.x - scaleOrigin.x ) * scale.x + scaleOrigin.x ),
-			IECore::fastFloatFloor( ( displayWindow.min.y - scaleOrigin.y ) * scale.y + scaleOrigin.y )
+			IECore::fastFloatFloor( ( dataWindow.min.x - scaleOrigin.x ) * scale.x + scaleOrigin.x ),
+			IECore::fastFloatFloor( ( dataWindow.min.y - scaleOrigin.y ) * scale.y + scaleOrigin.y )
 		),
 		Imath::V2i(
-			IECore::fastFloatFloor( ( displayWindow.max.x - scaleOrigin.x + 1. ) * scale.x + scaleOrigin.x - 1. ),
-			IECore::fastFloatFloor( ( displayWindow.max.y - scaleOrigin.y + 1. ) * scale.y + scaleOrigin.y - 1. )
+			IECore::fastFloatFloor( ( dataWindow.max.x - scaleOrigin.x + 1. ) * scale.x + scaleOrigin.x - 1. ),
+			IECore::fastFloatFloor( ( dataWindow.max.y - scaleOrigin.y + 1. ) * scale.y + scaleOrigin.y - 1. )
 		)
 	);
 

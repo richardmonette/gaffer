@@ -54,13 +54,14 @@ class ScaleTest( unittest.TestCase ) :
 		# Resize the image and check the size of the output data window.
 		scale = GafferImage.Scale()
 		scale["scale"].setValue( IECore.V2f( 1.25, .5 ) )	
-		scale["origin"].setValue( IECore.V2f( 50, 50 ) )	
 		scale["in"].setInput( read["out"] )
-		self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( -13, 25 ), IECore.V2i( 111, 74 )  ) )
+		
+		scale["origin"].setValue( IECore.V2f( 50, 30 ) )	
+		self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( 25, 30 ), IECore.V2i( 86, 54 )  ) )
 		
 		scale["origin"].setValue( IECore.V2f( 0, 0 ) )	
 		self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( 0, 0 ), IECore.V2i( 124, 49 )  ) )
-
+		
 	def testEnabled( self ) :
 		
 		read = GafferImage.ImageReader()
