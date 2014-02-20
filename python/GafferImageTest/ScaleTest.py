@@ -74,7 +74,7 @@ class ScaleTest( unittest.TestCase ) :
 #*	Add an option to the image reader that will 0 offset image formats.
 
 		read["fileName"].setValue( os.path.join( self.path, "checkerWithNegWindows.200x150.exr" ) )
-		scale["origin"].setValue( IECore.V2f( -5, -5 ) )	
+		scale["origin"].setValue( IECore.V2f( -25, -30 ) )	
 		
 		dw = scale["in"]["format"].getValue().getDisplayWindow()
 		print "Input DisplayWindow: %d, %d, %d, %d" % ( dw.min.x, dw.min.y, dw.max.x, dw.max.y ) 
