@@ -158,17 +158,17 @@ IECore::ConstStringVectorDataPtr Scale::computeChannelNames( const Gaffer::Conte
 Imath::Box2i Scale::computeDataWindow( const Gaffer::Context *context, const ImagePlug *parent ) const
 {
 	Imath::V2d scale( scalePlug()->getValue() );
-	Imath::Box2i dataWindow( inPlug()->dataWindowPlug()->getValue() );
 	Imath::V2d scaleOrigin( originPlug()->getValue() );
+	Imath::Box2i dataWindow( inPlug()->dataWindowPlug()->getValue() );
 	
 	Imath::Box2i outDataWindow(
 		Imath::V2i(
-			IECore::fastFloatFloor( ( dataWindow.min.x - scaleOrigin.x ) * scale.x + scaleOrigin.x ),
-			IECore::fastFloatFloor( ( dataWindow.min.y - scaleOrigin.y ) * scale.y + scaleOrigin.y )
+			IECore::fastFloatFloor( ( float( dataWindow.min.x ) - scaleOrigin.x ) * scale.x + scaleOrigin.x ),
+			IECore::fastFloatFloor( ( float( dataWindow.min.y ) - scaleOrigin.y ) * scale.y + scaleOrigin.y )
 		),
 		Imath::V2i(
-			IECore::fastFloatCeil( ( dataWindow.max.x - scaleOrigin.x + 1. ) * scale.x + scaleOrigin.x - 1. ),
-			IECore::fastFloatCeil( ( dataWindow.max.y - scaleOrigin.y + 1. ) * scale.y + scaleOrigin.y - 1. )
+			IECore::fastFloatCeil( ( float( dataWindow.max.x ) - scaleOrigin.x ) * scale.x + scaleOrigin.x ),
+			IECore::fastFloatCeil( ( float( dataWindow.max.y ) - scaleOrigin.y ) * scale.y + scaleOrigin.y )
 		)
 	);
 
@@ -189,14 +189,9 @@ IECore::ConstFloatVectorDataPtr Scale::computeChannelData( const std::string &ch
 	out.resize( ImagePlug::tileSize() * ImagePlug::tileSize() );
 
 	// Create some useful variables...
-	Imath::Box2i displayWindow( inPlug()->formatPlug()->getValue().getDisplayWindow() );
 	Imath::V2d scaleFactor( scalePlug()->getValue() );
 	Imath::V2d scaleOrigin( originPlug()->getValue() );
-	Imath::V2i outputOrigin(
-		IECore::fastFloatFloor( ( displayWindow.min.x - scaleOrigin.x ) * scaleFactor.x + scaleOrigin.x ),
-		IECore::fastFloatFloor( ( displayWindow.min.y - scaleOrigin.y ) * scaleFactor.y + scaleOrigin.y )
-	);
-	Imath::Box2i tile( tileOrigin-outputOrigin, Imath::V2i( tileOrigin.x - outputOrigin.x + ImagePlug::tileSize() - 1, tileOrigin.y - outputOrigin.y + ImagePlug::tileSize() - 1 ) );
+	Imath::Box2i tile( tileOrigin, Imath::V2i( tileOrigin.x + ImagePlug::tileSize() - 1, tileOrigin.y + ImagePlug::tileSize() - 1 ) );
 
 	// Create our filter.
 	FilterPtr f = Filter::create( filterPlug()->getValue(), 1.f / scaleFactor.y );
@@ -205,14 +200,21 @@ IECore::ConstFloatVectorDataPtr Scale::computeChannelData( const std::string &ch
 	// at all and just integer sample instead...
 	if( static_cast<GafferImage::TypeId>( f->typeId() ) == GafferImage::BoxFilterTypeId )
 	{
+		//\todo Shouldn't this be:
+		///
+		/// Imath::Box2i sampleBox(
+		/// 	Imath::V2i( IECore::fastFloatFloor( tile.min.x / scaleFactor.x ), IECore::fastFloatCeil( tile.min.y / scaleFactor.y ) ),
+		/// 	Imath::V2i( IECore::fastFloatFloor( ( tile.max.x - 1) / scaleFactor.x + 1 ), IECore::fastFloatCeil( ( tile.max.y - 1. ) / scaleFactor.y + 1 ) )
+		/// );
+		///
 		Imath::Box2i sampleBox(
 			Imath::V2i( IECore::fastFloatFloor( tile.min.x / scaleFactor.x ), IECore::fastFloatCeil( tile.min.y / scaleFactor.y ) ),
 			Imath::V2i( IECore::fastFloatFloor( tile.max.x / scaleFactor.x ), IECore::fastFloatCeil( tile.max.y / scaleFactor.y ) )
 		);
-		Sampler sampler( inPlug(), channelName, sampleBox, f, Sampler::Clamp );
-		for( int y = tile.min.y, ty = 0; y <= tile.max.y; ++y, ++ty )
+		Sampler sampler( inPlug(), channelName, sampleBox, f, Sampler::Black );
+		for( int y = tile.min.y, ty = 0; y < tile.max.y; ++y, ++ty )
 		{
-			for( int x = tile.min.x, tx = 0; x <= tile.max.x; ++x, ++tx )
+			for( int x = tile.min.x, tx = 0; x < tile.max.x; ++x, ++tx )
 			{
 				out[ tx + ImagePlug::tileSize() * ty ] = sampler.sample( (x+.5f) / float( scaleFactor.x ), (y+.5f) / float( scaleFactor.y ) ); 
 			}
@@ -223,12 +225,12 @@ IECore::ConstFloatVectorDataPtr Scale::computeChannelData( const std::string &ch
 	// Get the dimensions of our filter and create a box that we can use to define the bounds of our input.
 	int fHeight = f->width();
 	
-	int sampleMinY = f->tap( (tile.min.y+.5) / scaleFactor.y );
-	int sampleMaxY = f->tap( (tile.max.y+.5) / scaleFactor.y );
+	int sampleMinY = f->tap( ( tile.min.y + scaleOrigin.y + .5 ) / scaleFactor.y - scaleOrigin.y );
+	int sampleMaxY = f->tap( ( tile.max.y + scaleOrigin.y + .5 ) / scaleFactor.y - scaleOrigin.y );
 		
 	f->setScale( 1.f / scaleFactor.x );
-	int sampleMinX = f->tap( (tile.min.x+.5) / scaleFactor.x );
-	int sampleMaxX = f->tap( (tile.max.x+.5) / scaleFactor.x );
+	int sampleMinX = f->tap( ( tile.min.x + scaleOrigin.x + .5 ) / scaleFactor.x - scaleOrigin.x );
+	int sampleMaxX = f->tap( ( tile.max.x + scaleOrigin.x + .5 ) / scaleFactor.x - scaleOrigin.x );
 	
 	int fWidth = f->width();
 
@@ -265,7 +267,7 @@ IECore::ConstFloatVectorDataPtr Scale::computeChannelData( const std::string &ch
 	int contributionIdx = 0;
 	for( int i = 0; i < ImagePlug::tileSize(); ++i, contributionIdx += fWidth )
 	{
-		float center = (tile.min.x + i + 0.5) / scaleFactor.x;
+		float center = ( tile.min.x + i + scaleOrigin.x + 0.5 ) / scaleFactor.x - scaleOrigin.x;
 		int tap = f->tap( center );
 		
 		int n = 0;	
@@ -287,7 +289,7 @@ IECore::ConstFloatVectorDataPtr Scale::computeChannelData( const std::string &ch
 	
 	// Now that we know the contribution of each pixel from the others on the row, compute the
 	// horizontally scaled buffer which we will use as input in the vertical scale pass.
-	Sampler sampler( inPlug(), channelName, sampleBox, f, Sampler::Clamp );
+	Sampler sampler( inPlug(), channelName, sampleBox, f, Sampler::Black );
 	for( int k = 0; k < sampleBoxHeight; ++k )
 	{
 		for( int i = 0, contributionIdx = 0; i < ImagePlug::tileSize(); ++i, contributionIdx += fWidth )
@@ -316,7 +318,7 @@ IECore::ConstFloatVectorDataPtr Scale::computeChannelData( const std::string &ch
 	f->setScale( 1.f / scaleFactor.y );
 	for( int i = 0, contributionIdx = 0; i < ImagePlug::tileSize(); ++i, contributionIdx += fHeight )
 	{
-		float center = (tile.min.y + i + 0.5) / scaleFactor.y - sampleBox.min.y;
+		float center = ( tile.min.y + i + 0.5 ) / scaleFactor.y - sampleBox.min.y;
 		int tap = f->tap( center );
 		
 		int n = 0;	
