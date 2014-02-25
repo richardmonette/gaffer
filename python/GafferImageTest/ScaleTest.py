@@ -54,12 +54,33 @@ class ScaleTest( unittest.TestCase ) :
 		# Resize the image and check the size of the output data window.
 		scale = GafferImage.Scale()
 
+		read["fileName"].setValue( os.path.join( self.path, "checkerBox.200x150.exr" ) )
+		scale["in"].setInput( read["out"] )
 		
-#		scale["origin"].setValue( IECore.V2f( 0, 0 ) )	
-#		self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( 37, 15 ), IECore.V2i( 99, 39 )  ) )
+		scale["scale"].setValue( IECore.V2f( 1.25, .5 ) )	
+		scale["origin"].setValue( IECore.V2f( 0, 0 ) )	
+		#self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( 0, 0 ), IECore.V2i( 249, 74 )  ) )
 		
-#		scale["origin"].setValue( IECore.V2f( 50, 30 ) )	
-#		self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( 25, 30 ), IECore.V2i( 87, 54 )  ) )
+		scale["origin"].setValue( IECore.V2f( 21, 25 ) )	
+		#self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( -6, 12 ), IECore.V2i( 244, 87 )  ) )
+		
+		scale["origin"].setValue( IECore.V2f( 15.3, 17.9 ) )	
+		#self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( -4, 8 ), IECore.V2i( 246, 83 )  ) )
+		
+		scale["origin"].setValue( IECore.V2f( -15.3, -5 ) )	
+		#self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( 3, -3 ), IECore.V2i( 253, 72 )  ) )
+		
+		read["fileName"].setValue( os.path.join( self.path, "checkerWithNegativeDataWindow.200x150.exr" ) )
+		scale["scale"].setValue( IECore.V2f( 1.33, .72 ) )	
+		scale["origin"].setValue( IECore.V2f( 0, 0 ) )	
+		#self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( -34, -22 ), IECore.V2i( 232, 86 )  ) )
+		
+		scale["origin"].setValue( IECore.V2f( -11.3, 74 ) )	
+		#self.assertEqual( scale["out"]["dataWindow"].getValue(), IECore.Box2i( IECore.V2i( -30, -1 ), IECore.V2i( 236, 107 )  ) )
+		
+#		read["fileName"].setValue( os.path.join( self.path, "checkerWithNegWindows.200x150.exr" ) )
+		read["fileName"].setValue( "/tmp/rgbTest.exr" )
+		scale["origin"].setValue( IECore.V2f( -90, -28 ) )	
 	
 		# Test the scale with an image that has a negative data window.	
 #		read["fileName"].setValue( os.path.join( self.path, "checkerWithNegativeDataWindow.200x150.exr" ) )
@@ -71,10 +92,6 @@ class ScaleTest( unittest.TestCase ) :
 #*	It appears that gaffer is displaying checkerWithNegativeDataWindow.200x150.exr incorrectly. Check it out and make sure that it works correctly.
 #*	Add an option to the image reader that will 0 offset image formats.
 
-		read["fileName"].setValue( os.path.join( self.path, "/tmp/rgbOverCheckerWithNegBoxes.exr" ) )#checkerWithNegWindows.200x150.exr" ) )
-		scale["in"].setInput( read["out"] )
-		scale["scale"].setValue( IECore.V2f( 1.25, .5 ) )	
-		scale["origin"].setValue( IECore.V2f( -10, -5 ) )	
 		
 		dw = scale["in"]["format"].getValue().getDisplayWindow()
 		print "Input DisplayWindow: %d, %d, %d, %d" % ( dw.min.x, dw.min.y, dw.max.x, dw.max.y ) 
@@ -86,8 +103,12 @@ class ScaleTest( unittest.TestCase ) :
 		print "Out DataWindow: %d, %d, %d, %d" % ( dw.min.x, dw.min.y, dw.max.x, dw.max.y ) 
 		
 		w = GafferImage.ImageWriter()
-		w["fileName"].setValue( "/tmp/scale.exr" )
+		w["fileName"].setValue( "/tmp/scale2.exr" )
 		w["in"].setInput( scale["out"] )
+		w.execute( [ Gaffer.Context() ] )
+		
+		w["fileName"].setValue( "/tmp/scale1.exr" )
+		w["in"].setInput( read["out"] )
 		w.execute( [ Gaffer.Context() ] )
 		
 		
