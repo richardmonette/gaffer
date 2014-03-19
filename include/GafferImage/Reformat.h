@@ -60,15 +60,28 @@ class Reformat : public ImageProcessor
 		const GafferImage::FormatPlug *formatPlug() const;
 		GafferImage::FilterPlug *filterPlug();
 		const GafferImage::FilterPlug *filterPlug() const;
+		Gaffer::IntPlug *modePlug();
+		const Gaffer::IntPlug *modePlug() const;
+		Gaffer::BoolPlug *centerEnabledPlug();
+		const Gaffer::BoolPlug *centerEnabledPlug() const;
 		Gaffer::V2fPlug *scalePlug();
 		const Gaffer::V2fPlug *scalePlug() const;
 		Gaffer::V2fPlug *originPlug();
 		const Gaffer::V2fPlug *originPlug() const;
-
+		
 		virtual void affects( const Gaffer::Plug *input, AffectedPlugsContainer &outputs ) const;
 		virtual bool enabled() const;
 				
 	protected :
+
+		enum
+		{
+			kWidth = 0,
+			kHeight = 1,
+			kFit = 2,
+			kFill = 3,
+			kDistort = 4,
+		};
 		
 		GafferImage::Scale *scaleNode();
 		const GafferImage::Scale *scaleNode() const;
@@ -86,6 +99,7 @@ class Reformat : public ImageProcessor
 		virtual IECore::ConstStringVectorDataPtr computeChannelNames( const Gaffer::Context *context, const ImagePlug *parent ) const;
 		virtual IECore::ConstFloatVectorDataPtr computeChannelData( const std::string &channelName, const Imath::V2i &tileOrigin, const Gaffer::Context *context, const ImagePlug *parent ) const;
 
+		Imath::V2f origin() const;
 		Imath::V2f scale() const;
 			
 	private :

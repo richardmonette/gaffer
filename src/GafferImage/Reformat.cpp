@@ -54,7 +54,9 @@ Reformat::Reformat( const std::string &name )
 	storeIndexOfNextChild( g_firstPlugIndex );
 	addChild( new FormatPlug( "format" ) );
 	addChild( new FilterPlug( "filter" ) );
-	
+	addChild( new IntPlug( "mode" ) );
+	addChild( new BoolPlug( "centerEnabled" ) );
+
 	addChild( new V2fPlug( "__scale", Gaffer::Plug::Out ) );
 	addChild( new V2fPlug( "__origin", Gaffer::Plug::Out ) );
 	
@@ -95,34 +97,54 @@ const GafferImage::FilterPlug *Reformat::filterPlug() const
 	return getChild<GafferImage::FilterPlug>( g_firstPlugIndex+1 );
 }
 
+Gaffer::IntPlug *Reformat::modePlug()
+{
+	return getChild<Gaffer::IntPlug>( g_firstPlugIndex+2 );
+}
+
+const Gaffer::IntPlug *Reformat::modePlug() const
+{
+	return getChild<Gaffer::IntPlug>( g_firstPlugIndex+2 );
+}
+
+Gaffer::BoolPlug *Reformat::centerEnabledPlug()
+{
+	return getChild<Gaffer::BoolPlug>( g_firstPlugIndex+3 );
+}
+
+const Gaffer::BoolPlug *Reformat::centerEnabledPlug() const
+{
+	return getChild<Gaffer::BoolPlug>( g_firstPlugIndex+3 );
+}
+
 Gaffer::V2fPlug *Reformat::scalePlug()
 {
-	return getChild<V2fPlug>( g_firstPlugIndex+2 );
+	return getChild<V2fPlug>( g_firstPlugIndex+4 );
 }
 
 const Gaffer::V2fPlug *Reformat::scalePlug() const
 {
-	return getChild<V2fPlug>( g_firstPlugIndex+2 );
+	return getChild<V2fPlug>( g_firstPlugIndex+4 );
 }
 
 Gaffer::V2fPlug *Reformat::originPlug()
 {
-	return getChild<V2fPlug>( g_firstPlugIndex+3 );
+	return getChild<V2fPlug>( g_firstPlugIndex+5 );
 }
 
 const Gaffer::V2fPlug *Reformat::originPlug() const
 {
-	return getChild<V2fPlug>( g_firstPlugIndex+3 );
+	return getChild<V2fPlug>( g_firstPlugIndex+5 );
 }
 
 GafferImage::Scale *Reformat::scaleNode()
 {
-	return getChild<Scale>( g_firstPlugIndex + 4 );
+	return getChild<Scale>( g_firstPlugIndex+6 );
 }
 
 const GafferImage::Scale *Reformat::scaleNode() const
 {
-	return getChild<Scale>( g_firstPlugIndex + 4 );
+	return getChild<Scale>( g_firstPlugIndex+6 );
 }
 
 void Reformat::affects( const Gaffer::Plug *input, AffectedPlugsContainer &outputs ) const
@@ -130,6 +152,22 @@ void Reformat::affects( const Gaffer::Plug *input, AffectedPlugsContainer &outpu
 	ImageProcessor::affects( input, outputs );
 
 	if( input == formatPlug() || input == inPlug()->formatPlug() )
+	{
+		outputs.push_back( scalePlug()->getChild(0) );
+		outputs.push_back( scalePlug()->getChild(1) );
+		outputs.push_back( originPlug()->getChild(0) );
+		outputs.push_back( originPlug()->getChild(1) );
+		outputs.push_back( outPlug()->dataWindowPlug() );
+	}
+	else if ( input == modePlug() )
+	{
+		outputs.push_back( scalePlug()->getChild(0) );
+		outputs.push_back( scalePlug()->getChild(1) );
+		outputs.push_back( originPlug()->getChild(0) );
+		outputs.push_back( originPlug()->getChild(1) );
+		outputs.push_back( outPlug()->dataWindowPlug() );
+	}
+	else if ( input == centerEnabledPlug() )
 	{
 		outputs.push_back( scalePlug()->getChild(0) );
 		outputs.push_back( scalePlug()->getChild(1) );
@@ -157,12 +195,12 @@ void Reformat::compute( ValuePlug *output, const Context *context ) const
 	Box2i displayWindow( inPlug()->formatPlug()->getValue().getDisplayWindow() );
 	if( output == originPlug()->getChild( 0 ) )
 	{
-		static_cast<FloatPlug *>( output )->setValue( inPlug()->formatPlug()->getValue().getDisplayWindow().min.x );
+		static_cast<FloatPlug *>( output )->setValue( origin().x );
 		return;
 	}
 	else if( output == originPlug()->getChild( 1 ) )
 	{
-		static_cast<FloatPlug *>( output )->setValue( inPlug()->formatPlug()->getValue().getDisplayWindow().min.y );
+		static_cast<FloatPlug *>( output )->setValue( origin().y );
 		return;
 	}
 	else if( output == scalePlug()->getChild( 0 ) )
@@ -194,6 +232,7 @@ void Reformat::hash( const ValuePlug *output, const Context *context, IECore::Mu
 	{
 		h.append( inPlug()->formatPlug()->getValue().getDisplayWindow().size().x );
 		h.append( formatPlug()->getValue().getDisplayWindow().size().x );
+		h.append( modePlug()->getValue() );
 		return;
 	}
 	else if( output == scalePlug()->getChild( 1 ) )
@@ -202,23 +241,84 @@ void Reformat::hash( const ValuePlug *output, const Context *context, IECore::Mu
 		h.append( inPlug()->formatPlug()->getValue().getPixelAspect() );
 		h.append( formatPlug()->getValue().getDisplayWindow().size().y );
 		h.append( formatPlug()->getValue().getPixelAspect() );
+		h.append( modePlug()->getValue() );
 		return;
 	}
 	else if( output == originPlug()->getChild( 0 ) )
 	{
 		h.append( inPlug()->formatPlug()->getValue().getDisplayWindow().min.x );
+		h.append( modePlug()->getValue() );
+		h.append( centerEnabledPlug()->getValue() );
 		return;
 	}
 	else if( output == originPlug()->getChild( 1 ) )
 	{
 		h.append( inPlug()->formatPlug()->getValue().getDisplayWindow().min.y );
 		h.append( inPlug()->formatPlug()->getValue().getPixelAspect() );
+		h.append( modePlug()->getValue() );
+		h.append( centerEnabledPlug()->getValue() );
 		return;
 	}
 	else if( output == outPlug()->dataWindowPlug() )
 	{
 		h.append( scaleNode()->outPlug()->dataWindowPlug()->getValue() );
+		h.append( modePlug()->getValue() );
+		h.append( centerEnabledPlug()->getValue() );
 		return;
+	}
+}
+
+Imath::V2f Reformat::origin() const
+{
+	Box2i inDisplayWindow( inPlug()->formatPlug()->getValue().getDisplayWindow() );
+	Box2i inDataWindow( inPlug()->dataWindowPlug()->getValue() );
+	Box2i outDisplayWindow( formatPlug()->getValue().getDisplayWindow() );
+	Imath::V2f s( scale() );	
+
+	if ( centerEnabledPlug()->getValue() )
+	{
+		const double offsetX = ((inDataWindow.max.x - inDataWindow.min.x) / 2.) * -1.;
+		const double offsetY = ((inDataWindow.max.y - inDataWindow.min.y) / 2.) * -1.;
+		
+		switch ( modePlug()->getValue() )
+		{
+			case kWidth:
+				return Imath::V2f( offsetX, 0. );
+				break;
+			case kHeight:
+				return Imath::V2f( 0., offsetY );
+				break;
+			case kFit:
+				if ( offsetX > offsetY )
+				{
+					return Imath::V2f( offsetX, 0. );
+				}
+				else
+				{
+					return Imath::V2f( 0., offsetY );
+				}
+				break;
+			case kFill:
+				if ( offsetX < offsetY )
+				{
+					return Imath::V2f( offsetX, 0. );
+				}
+				else
+				{
+					return Imath::V2f( 0., offsetY );
+				}
+				break;
+			case kDistort:
+				return inDisplayWindow.min;
+				break;
+			default:
+				return inDisplayWindow.min;
+				break;
+		}	
+	}
+	else
+	{	
+		return inDisplayWindow.min;
 	}
 }
 
@@ -226,7 +326,33 @@ Imath::V2f Reformat::scale() const
 {
 	Box2i outDisplayWindow( formatPlug()->getValue().getDisplayWindow() );
 	Box2i displayWindow( inPlug()->formatPlug()->getValue().getDisplayWindow() );
-	return Imath::V2f( ( outDisplayWindow.size().x + 1. ) / ( displayWindow.size().x + 1. ), ( outDisplayWindow.size().y + 1. ) / ( displayWindow.size().y + 1. ));
+	
+	const double scaleWidth = ( outDisplayWindow.size().x + 1. ) / ( displayWindow.size().x + 1. );
+	const double scaleHeight = ( outDisplayWindow.size().y + 1. ) / ( displayWindow.size().y + 1. );
+	const double scaleFit = std::min( scaleWidth, scaleHeight );
+	const double scaleFill = std::max( scaleWidth, scaleHeight );
+
+	switch ( modePlug()->getValue() )
+	{
+		case kWidth:
+			return Imath::V2f( scaleWidth, scaleWidth );
+			break;
+		case kHeight:
+			return Imath::V2f( scaleHeight, scaleHeight );
+			break;
+		case kFit:
+			return Imath::V2f( scaleFit, scaleFit );
+			break;
+		case kFill:
+			return Imath::V2f( scaleFill, scaleFill );
+			break;
+		case kDistort:
+			return Imath::V2f( scaleWidth, scaleHeight );
+			break;
+		default:
+			return Imath::V2f( scaleWidth, scaleHeight );
+			break;
+	}
 }
 
 GafferImage::Format Reformat::computeFormat( const Gaffer::Context *context, const ImagePlug *parent ) const

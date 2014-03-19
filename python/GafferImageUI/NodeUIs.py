@@ -144,6 +144,15 @@ GafferUI.PlugValueWidget.registerCreator(
 	labelsAndValues = mergeOperationLabelsAndValues
 )
 
+# Reformat Modes
+reformatModesLabelsAndValues = [ ( "Width", 0 ), ( "Height", 1 ), ( "Fit", 2 ), ( "Fill", 3 ), ( "Distort", 4 ) ]
+GafferUI.PlugValueWidget.registerCreator(
+	GafferImage.Reformat.staticTypeId(),
+	"mode",
+	GafferUI.EnumPlugValueWidget,
+	labelsAndValues = reformatModesLabelsAndValues
+)
+
 # Remove Channels
 removeChannelsLabelsAndValues = [ ( "Remove", 0 ), ( "Keep", 1 ) ]
 GafferUI.PlugValueWidget.registerCreator(
